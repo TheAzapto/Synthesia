@@ -12,9 +12,13 @@ Creates emergent visual behaviors with temporal memory and "hallucination modes"
 ## Key Features
 
 🎵 Real-time audio analysis with advanced feature extraction (MFCCs, spectral features, tempo)
+
 🎨 Generative visual synthesis using trained neural networks
+
 🌊 Smooth temporal interpolation for fluid, organic motion
+
 🧠 Multiple "personality modes" - from chaotic to meditative responses
+
 ⚡ Optimized for 30+ FPS performance on consumer GPUs
 
 ## Tech Stack
