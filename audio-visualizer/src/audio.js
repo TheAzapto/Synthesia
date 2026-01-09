@@ -66,7 +66,6 @@ export class AudioEngine {
         }
     }
 
-
     smooth(current, target, rate) {
         return current + (target - current) * rate;
     }
