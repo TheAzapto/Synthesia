@@ -58,6 +58,12 @@ btnStop.addEventListener("click", () => {
   progressEl.value = 0;
   timeCurrent.textContent = "0:00";
   updateSliderFill(progressEl, 0, 1000);
+
+  // Reset shader time and return to file-select landing
+  shaderTime = 0;
+  lastFrameTime = -1;
+  player.classList.add("hidden");
+  landing.classList.remove("fade-out");
 });
 
 // Open new file (inside player)
@@ -161,7 +167,21 @@ gl.clear(gl.COLOR_BUFFER_BIT);
 gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
 /* ═══════════════════════ RENDER LOOP ═══════════════════════ */
+let shaderTime = 0;   // accumulated time sent to the shader
+let lastFrameTime = -1;
+
 function loop(t) {
+  // Accumulate shader time only while playing (not paused/stopped)
+  const playing = audioCtx.isPlaying && !audioCtx.isPaused;
+  if (playing) {
+    if (lastFrameTime >= 0) {
+      shaderTime += (t - lastFrameTime) * 0.001;
+    }
+    lastFrameTime = t;
+  } else {
+    lastFrameTime = t; // reset so we don't get a big jump on resume
+  }
+
   audioCtx.update();
 
   // Update progress bar & time
@@ -180,7 +200,7 @@ function loop(t) {
   gl.useProgram(program);
   gl.viewport(0, 0, canvas.width, canvas.height);
 
-  gl.uniform1f(uTime, t * 0.001);
+  gl.uniform1f(uTime, shaderTime);
   gl.uniform1f(uLow, audioCtx.low);
   gl.uniform1f(uMid, audioCtx.mid);
   gl.uniform1f(uHigh, audioCtx.high);
