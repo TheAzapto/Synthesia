@@ -2,6 +2,9 @@ export class AudioEngine {
     constructor() {
         this.ctx = null;
         this.analyser = null;
+        this.gainNode = null;
+        this.source = null;
+        this.audioBuffer = null;
         this.data = null;
 
         this.low = 0;
@@ -9,27 +12,146 @@ export class AudioEngine {
         this.high = 0;
         this.rms = 0;
         this.beat = 0;
+
+        // Playback state
+        this.isPlaying = false;
+        this.isPaused = false;
+        this.songName = '';
+        this.duration = 0;
+        this._startedAt = 0;   // context time when playback started
+        this._offset = 0;      // playback offset in seconds
     }
 
     async initFromFile(file) {
-        this.ctx = new AudioContext();
+        // Stop any existing playback
+        if (this.source) {
+            try { this.source.stop(); } catch (_) { }
+        }
+
+        if (!this.ctx) {
+            this.ctx = new AudioContext();
+        }
+
+        // Resume context if suspended (browser autoplay policy)
+        if (this.ctx.state === 'suspended') {
+            await this.ctx.resume();
+        }
 
         const arrayBuffer = await file.arrayBuffer();
-        const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+        this.audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+        this.duration = this.audioBuffer.duration;
+        this.songName = file.name.replace(/\.[^/.]+$/, ''); // strip extension
 
-        const source = this.ctx.createBufferSource();
-        source.buffer = audioBuffer;
-        source.loop = true;
+        // Create gain node once
+        if (!this.gainNode) {
+            this.gainNode = this.ctx.createGain();
+        }
 
-        this.analyser = this.ctx.createAnalyser();
-        this.analyser.fftSize = 1024;
+        // Create analyser once
+        if (!this.analyser) {
+            this.analyser = this.ctx.createAnalyser();
+            this.analyser.fftSize = 1024;
+            this.data = new Uint8Array(this.analyser.frequencyBinCount);
+        }
 
-        source.connect(this.analyser);
+        this._offset = 0;
+        this._startSource(0);
+    }
+
+    _startSource(offset) {
+        // Create a new buffer source (they are single-use)
+        this.source = this.ctx.createBufferSource();
+        this.source.buffer = this.audioBuffer;
+        this.source.loop = true;
+
+        // Chain: source → gainNode → analyser → destination
+        this.source.connect(this.gainNode);
+        this.gainNode.connect(this.analyser);
         this.analyser.connect(this.ctx.destination);
 
-        this.data = new Uint8Array(this.analyser.frequencyBinCount);
+        this.source.start(0, offset);
+        this._startedAt = this.ctx.currentTime;
+        this._offset = offset;
+        this.isPlaying = true;
+        this.isPaused = false;
+    }
 
-        source.start();
+    togglePlay() {
+        if (!this.audioBuffer) return;
+        if (this.isPlaying && !this.isPaused) {
+            this.pause();
+        } else {
+            this.resume();
+        }
+    }
+
+    pause() {
+        if (!this.ctx || !this.isPlaying || this.isPaused) return;
+        this._offset = this.getCurrentTime();
+        this.ctx.suspend();
+        this.isPaused = true;
+    }
+
+    resume() {
+        if (!this.ctx) return;
+
+        if (this.isPaused) {
+            this.ctx.resume();
+            this.isPaused = false;
+        } else if (!this.isPlaying && this.audioBuffer) {
+            // Restart after stop
+            this._startSource(0);
+        }
+    }
+
+    stop() {
+        if (!this.source) return;
+        try { this.source.stop(); } catch (_) { }
+        this.source = null;
+        this.isPlaying = false;
+        this.isPaused = false;
+        this._offset = 0;
+
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume(); // un-suspend so next play works
+        }
+    }
+
+    seek(time) {
+        if (!this.audioBuffer) return;
+        const wasPlaying = this.isPlaying && !this.isPaused;
+
+        if (this.source) {
+            try { this.source.stop(); } catch (_) { }
+        }
+
+        // Un-suspend if paused
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+
+        this._startSource(time % this.duration);
+
+        if (!wasPlaying) {
+            this.pause();
+        }
+    }
+
+    setVolume(v) {
+        if (this.gainNode) {
+            this.gainNode.gain.value = Math.max(0, Math.min(1, v));
+        }
+    }
+
+    getCurrentTime() {
+        if (!this.isPlaying) return this._offset;
+        if (this.isPaused) return this._offset;
+        const elapsed = this.ctx.currentTime - this._startedAt + this._offset;
+        return elapsed % this.duration;
+    }
+
+    getDuration() {
+        return this.duration;
     }
 
     update() {
@@ -51,7 +173,7 @@ export class AudioEngine {
         mid /= (n * 0.4);
         high /= (n * 0.4);
 
-        // 🔥 SMOOTHED VALUES
+        // Smoothed values
         this.low = this.smooth(this.low, low, 0.1);
         this.mid = this.smooth(this.mid, mid, 0.08);
         this.high = this.smooth(this.high, high, 0.06);
@@ -60,9 +182,9 @@ export class AudioEngine {
 
         const energy = this.rms;
         if (energy > this.beat) {
-            this.beat = energy;           // fast attack
+            this.beat = energy;
         } else {
-            this.beat *= 0.92;            // slow decay
+            this.beat *= 0.92;
         }
     }
 
