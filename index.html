@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Synthesia — a real-time WebGL audio visualizer with immersive shader effects" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <title>Synthesia</title>
+  <script type="module" crossorigin src="/assets/index-O_ZHiEGJ.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-C767A3Ws.css">
+</head>
+
+<body>
+  <div id="app">
+    <!-- Landing: file select -->
+    <div id="landing">
+      <input type="file" id="file" accept="audio/*">
+      <label for="file" id="file-label">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <span>Select Audio</span>
+      </label>
+    </div>
+
+    <!-- Player bar (hidden until audio loads) -->
+    <div id="player" class="player hidden">
+      <!-- Song info -->
+      <div class="player__info">
+        <div class="player__now-playing">NOW PLAYING</div>
+        <div class="player__song-name" id="song-name">—</div>
+      </div>
+
+      <!-- Controls -->
+      <div class="player__controls">
+        <button id="btn-stop" class="player__btn" title="Stop" aria-label="Stop">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+        </button>
+        <button id="btn-play" class="player__btn player__btn--play" title="Play / Pause" aria-label="Play Pause">
+          <svg id="icon-play" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,3 20,12 6,21"/></svg>
+          <svg id="icon-pause" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="5" y="3" width="4" height="18" rx="1"/><rect x="15" y="3" width="4" height="18" rx="1"/></svg>
+        </button>
+        <button id="btn-file" class="player__btn" title="Open file" aria-label="Open new file">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        </button>
+      </div>
+
+      <!-- Progress -->
+      <div class="player__progress-wrap">
+        <span class="player__time" id="time-current">0:00</span>
+        <input type="range" id="progress" class="player__progress" min="0" max="1000" value="0" step="1">
+        <span class="player__time" id="time-total">0:00</span>
+      </div>
+
+      <!-- Volume -->
+      <div class="player__volume-wrap">
+        <svg class="player__volume-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+        <input type="range" id="volume" class="player__volume" min="0" max="100" value="80" step="1">
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
